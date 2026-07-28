@@ -97,7 +97,6 @@ import java.util.Base64
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import com.sun.net.httpserver.HttpServer
-import com.nyora.hasan72341.shared.sync.SupabaseConfig
 
 enum class NavDest {
     EXPLORE, FAVOURITES, HISTORY, BOOKMARKS, UPDATES, LOCAL_FILES, DOWNLOADS, SETTINGS, STATS, SUGGESTIONS
@@ -2228,16 +2227,10 @@ class AppState(
     }
 
     /**
-     * Run the shared loopback OAuth flow for an authorization-code service
-     * (AniList / MyAnimeList / Shikimori). Kitsu uses a password grant instead —
-     * see [trackerLoginWithPassword]. Suspends (in a coroutine) until the browser
-     * round-trips or the flow times out.
+     * Run the shared loopback OAuth flow for an authorization-code service.
+     * Suspends (in a coroutine) until the browser round-trips or the flow times out.
      */
     fun trackerLogin(service: ScrobblerService) {
-        if (service == ScrobblerService.KITSU) {
-            showStatus("Kitsu signs in with your email + password — use the fields below.")
-            return
-        }
         if (trackerBusy != null) return
         trackerBusy = service.slug
         scope.launch {
@@ -2260,26 +2253,6 @@ class AppState(
         }
     }
 
-    /** Kitsu resource-owner password login (Kitsu has no OAuth consent page). */
-    fun trackerLoginWithPassword(service: ScrobblerService, username: String, password: String) {
-        if (username.isBlank() || password.isBlank()) {
-            showStatus("Enter your ${service.title} email and password.")
-            return
-        }
-        if (trackerBusy != null) return
-        trackerBusy = service.slug
-        scope.launch {
-            runCatching {
-                ScrobblerOAuth.loginWithPassword(scrobblerRepo[service], username, password)
-            }.onSuccess {
-                showStatus("Signed in to ${service.title}.")
-            }.onFailure {
-                showStatus("${service.title} sign-in failed: ${it.message}")
-            }
-            trackerBusy = null
-            refreshTrackerAuth()
-        }
-    }
 
     /** Sign out of a single tracker service (clears its stored tokens). */
     fun trackerLogout(service: ScrobblerService) {

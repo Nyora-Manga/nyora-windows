@@ -72,7 +72,6 @@ fun main(args: Array<String>) {
         pageLoader = PageImageLoader(networkConfig = networkConfig),
         downloads = boot.downloads,
         networkConfig = networkConfig,
-        sourcesEnabled = { sourcesGate.get() },
     )
     val baseUrl = server.start()
 

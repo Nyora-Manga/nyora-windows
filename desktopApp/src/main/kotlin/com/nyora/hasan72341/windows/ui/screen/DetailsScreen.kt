@@ -916,10 +916,7 @@ private fun CategoryManagerDialog(
 private fun TrackDialog(state: AppState, manga: Manga, onDismiss: () -> Unit) {
     val accent = LocalNyoraAccent.current.color
     LaunchedEffect(Unit) { state.refreshTrackerAuth() }
-    val hidden = setOf(ScrobblerService.KITSU, ScrobblerService.SHIKIMORI)
-    val services = ScrobblerService.entries.filter {
-        it !in hidden && it.slug in state.trackerAuthorized
-    }
+    val services = ScrobblerService.entries.filter { it.slug in state.trackerAuthorized }
     var expanded by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(

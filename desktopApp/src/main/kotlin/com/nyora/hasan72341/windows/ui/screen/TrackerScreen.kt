@@ -43,11 +43,10 @@ fun TrackerScreen(state: AppState, onBack: () -> Unit) {
     // Recompute authorized services once when the screen opens.
     LaunchedEffect(Unit) { state.refreshTrackerAuth() }
 
-    // We surface only the trackers Nyora actively uses — AniList and MyAnimeList
-    // (MangaBaka is pending its library-write API). Kitsu (Cloudflare-challenged)
-    // and Shikimori stay dormant in the enum, just not surfaced.
-    val hiddenTrackers = setOf(ScrobblerService.KITSU, ScrobblerService.SHIKIMORI)
-    val visibleServices = ScrobblerService.entries.filter { it !in hiddenTrackers }
+    // Every tracker the shared module defines is surfaced. Kitsu and Shikimori
+    // were filtered out here, but they are not in ScrobblerService at all — the
+    // screen was written against an API only the macOS (Swift) side ever had.
+    val visibleServices = ScrobblerService.entries
 
     val scrollState = rememberScrollState()
     NyoraScrollContainer(
@@ -168,83 +167,36 @@ private fun ServiceCard(service: ScrobblerService, state: AppState, accent: andr
 
         if (!linked) {
             // ── Login affordance ──────────────────────────────────────────────
-            if (service == ScrobblerService.KITSU) {
-                // Kitsu = resource-owner password grant (no consent page).
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
+            Text(
+                text = "Sign in opens ${service.title} in your browser to authorize Nyora.",
+                style = MaterialTheme.typography.bodySmall,
+                color = NyoraTokens.onSurfaceMuted,
+                lineHeight = 18.sp,
+            )
+            Button(
+                onClick = { state.trackerLogin(service) },
+                enabled = !busy,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = accent),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Log in with ${service.title}", fontWeight = FontWeight.Bold)
+            }
+            // Surface the consent URL in case the browser opened off-screen.
+            state.trackerLoginUrl?.takeIf { busy }?.let { url ->
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Kitsu email") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    colors = trackerFieldColors(accent),
-                    shape = RoundedCornerShape(14.dp),
-                )
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Kitsu password") },
-                    singleLine = true,
-                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    trailingIcon = {
-                        TextButton(
-                            onClick = { showPassword = !showPassword },
-                            contentPadding = PaddingValues(horizontal = 8.dp),
-                        ) {
-                            Text(
-                                text = if (showPassword) "Hide" else "Show",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = accent,
-                            )
-                        }
-                    },
-                    colors = trackerFieldColors(accent),
-                    shape = RoundedCornerShape(14.dp),
-                )
-                Button(
-                    onClick = { state.trackerLoginWithPassword(service, email, password) },
-                    enabled = !busy,
+                    color = NyoraTokens.surface1,
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = accent),
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Sign in", fontWeight = FontWeight.Bold)
-                }
-            } else {
-                Text(
-                    text = "Sign in opens ${service.title} in your browser to authorize Nyora.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = NyoraTokens.onSurfaceMuted,
-                    lineHeight = 18.sp,
-                )
-                Button(
-                    onClick = { state.trackerLogin(service) },
-                    enabled = !busy,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = accent),
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Log in with ${service.title}", fontWeight = FontWeight.Bold)
-                }
-                // Surface the consent URL in case the browser opened off-screen.
-                state.trackerLoginUrl?.takeIf { busy }?.let { url ->
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = NyoraTokens.surface1,
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text(
-                            text = "If the browser didn't open, visit:\n$url",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = NyoraTokens.onSurfaceMuted,
-                            lineHeight = 18.sp,
-                            modifier = Modifier.padding(12.dp),
-                        )
-                    }
+                    Text(
+                        text = "If the browser didn't open, visit:\n$url",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = NyoraTokens.onSurfaceMuted,
+                        lineHeight = 18.sp,
+                        modifier = Modifier.padding(12.dp),
+                    )
                 }
             }
         } else {
