@@ -1178,7 +1178,7 @@ class AppState(
 
         val readerSession = readerSessionGeneration
         val translationSession = translationGeneration
-        val source = translateLangs
+        val source = effectiveTranslateLangs()
         val target = translateTarget
         val fandom = translateFandom
         val title = selectedManga?.title.orEmpty()
@@ -1381,10 +1381,29 @@ class AppState(
         s.startsWith("zh") -> "zh"; s.startsWith("ko") -> "ko"; s.startsWith("en") -> "en"; else -> "ja"
     }
 
+    /**
+     * The OCR/source language actually used for translation. "auto" resolves from
+     * the open manga's own source language, matching the web reader — otherwise a
+     * Korean title read with the Japanese default is OCR'd as Japanese and every
+     * bubble comes back wrong. Unknown falls back to the previous default.
+     */
+    private fun effectiveTranslateLangs(): String {
+        if (translateLangs != "auto") return translateLangs
+        val code = readerManga?.let { sourceFor(it) }?.lang?.lowercase().orEmpty()
+        return when {
+            code.startsWith("zh-hant") || code.startsWith("zh-tw") || code.startsWith("zh-hk") -> "zh-Hant"
+            code.startsWith("zh") || code.startsWith("ch") -> "zh-Hans"
+            code.startsWith("ja") -> "ja"
+            code.startsWith("ko") -> "ko"
+            code.startsWith("en") -> "en"
+            else -> "ja"
+        }
+    }
+
     /** Refresh the "models downloaded?" flags the Settings/reader gates read. */
     fun refreshOnnxReady() {
         scope.launch {
-            val src = onnxSrc(translateLangs)
+            val src = onnxSrc(effectiveTranslateLangs())
             val (translateReady, colorizeReady) = withContext(Dispatchers.IO) {
                 val ocr = if (src == "ja") com.nyora.windows.ai.onnx.MangaOcr.isReady()
                           else com.nyora.windows.ai.onnx.PaddleOcr.isReady(src)
@@ -1431,7 +1450,7 @@ class AppState(
         scope.launch(Dispatchers.IO) {
             runCatching {
                 com.nyora.windows.ai.onnx.OnnxDetector.downloadModel { onnxDownloadLabel = "Bubble detector $it%" }
-                val src = onnxSrc(translateLangs)
+                val src = onnxSrc(effectiveTranslateLangs())
                 if (src == "ja") com.nyora.windows.ai.onnx.MangaOcr.downloadModels { onnxDownloadLabel = "Japanese OCR $it%" }
                 else com.nyora.windows.ai.onnx.PaddleOcr.downloadModels(src) { onnxDownloadLabel = "OCR ($src) $it%" }
             }.onFailure { showStatus("Model download failed: ${it.message}") }

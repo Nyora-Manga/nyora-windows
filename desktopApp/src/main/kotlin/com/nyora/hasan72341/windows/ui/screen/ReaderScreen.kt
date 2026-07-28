@@ -1181,6 +1181,7 @@ private fun ReaderSettingsDialog(
                 // BCP-47 tags for the Windows OCR engine; the matching Windows
                 // language pack must be installed for recognition to work.
                 val ocrLangs = listOf(
+                    "Auto (source language)" to "auto",
                     "Japanese" to "ja",
                     "Chinese (Simplified)" to "zh-Hans",
                     "Chinese (Traditional)" to "zh-Hant",

@@ -94,6 +94,7 @@ private val TARGET_LANG_OPTIONS = listOf(
 // BCP-47 tags for the Windows OCR engine (Windows.Media.Ocr). The matching
 // Windows OCR language pack must be installed for recognition to work.
 private val OCR_LANG_OPTIONS = listOf(
+    "auto"    to "Auto (source language)",
     "ja"      to "Japanese",
     "en"      to "English",
     "ko"      to "Korean",
